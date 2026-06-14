@@ -26,5 +26,9 @@ public class Modal {
     @Column(nullable = false)
     private Integer capacidade;
 
+    @Column(name = "ultima_manutencao")
     private LocalDate ultimaManutencao;
+
+    @Column(length = 30)
+    private String status;
 }

@@ -8,17 +8,19 @@ import lombok.Setter;
 @Table(name = "Cartao")
 @Getter
 @Setter
-public class Cartao {
+@Inheritance(strategy = InheritanceType.JOINED)
+
+public abstract class Cartao {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "id")
+    @JoinColumn(name = "id_pagamento")
     private Pagamento pagamento;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_da_operadora", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_da_operadora")
     private Operadora operadora;
 }

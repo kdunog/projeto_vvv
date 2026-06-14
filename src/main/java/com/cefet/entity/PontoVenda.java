@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "PontoVenda")
 @Getter
@@ -17,6 +19,9 @@ public class PontoVenda {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_endereco", nullable = false)
     private Endereco endereco;
+
+    @ManyToMany(mappedBy = "pontosVenda")
+    private List<Funcionario> funcionarios;
 
     @Column(length = 20)
     private String telefone;

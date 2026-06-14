@@ -29,8 +29,12 @@ public class BancoController {
     }
 
     @PostMapping
-    public Banco salvar(@RequestBody Banco banco) {
-        return bancoService.salvar(banco);
+    public ResponseEntity<?> salvar(@RequestBody Banco banco) {
+        try {
+            return ResponseEntity.ok(bancoService.salvar(banco));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")

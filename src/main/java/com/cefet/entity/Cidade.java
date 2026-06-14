@@ -18,5 +18,8 @@ public class Cidade {
     private String nome;
 
     @Column(nullable = false, length = 50)
+    private String indentificador;
+
+    @Column(nullable = false, length = 50)
     private String estado;
 }
