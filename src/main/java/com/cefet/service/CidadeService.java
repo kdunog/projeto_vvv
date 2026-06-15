@@ -26,7 +26,7 @@ public class CidadeService {
 
     @Transactional
     public Cidade salvar(Cidade cidade) {
-        if (cidade.getIndentificador() == null || cidade.getIndentificador().length() != 3) {
+        if (cidade.getIndentificador() == null || !cidade.getIndentificador().matches("[A-Z]{3}")) {
             throw new RuntimeException("Identificador da cidade deve ter 3 letras maiúsculas.");
         }
         cidade.setNome(cidade.getNome().toUpperCase());
