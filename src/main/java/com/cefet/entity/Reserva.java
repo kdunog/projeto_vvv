@@ -1,11 +1,13 @@
 package com.cefet.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "Reserva")
@@ -44,9 +46,11 @@ public class Reserva {
     private String status;
 
     @OneToOne(mappedBy = "reserva", fetch = FetchType.LAZY)
+    @JsonIgnore
     private Pagamento pagamento;
 
     @OneToOne(mappedBy = "reserva", fetch = FetchType.LAZY)
+    @JsonIgnore
     private Ticket ticket;
 
     @Column(nullable = false)
@@ -62,4 +66,10 @@ public class Reserva {
 
     @Column(length = 20)
     private String tipoVenda;
+
+    @ManyToOne
+    @JoinColumn(name = "id_gerente_virtual")
+    private Funcionario gerenteVirtual;
+
+    private Boolean aprovadaPeloGerente = false;
 }

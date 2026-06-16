@@ -3,19 +3,26 @@ package com.cefet.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.cefet.entity.Endereco;
 import com.cefet.entity.Funcionario;
+import com.cefet.entity.PontoVenda;
 import com.cefet.repository.FuncionarioRepository;
 
 @Service
 public class FuncionarioService {
 
     private final FuncionarioRepository repo;
+    private final EnderecoService enderecoService;
+    private final PontoVendaService pontoVendaService;
 
-    public FuncionarioService(FuncionarioRepository repo) {
+    public FuncionarioService(FuncionarioRepository repo, EnderecoService enderecoService, PontoVendaService pontoVendaService) {
         this.repo = repo;
+        this.enderecoService = enderecoService;
+        this.pontoVendaService = pontoVendaService;
     }
 
     @Transactional(readOnly = true)
@@ -31,29 +38,51 @@ public class FuncionarioService {
     @Transactional
     public Funcionario salvar(Funcionario funcionario) {
 
-        if (funcionario.getPontosVenda() == null ||
-            funcionario.getPontosVenda().isEmpty()) {
-
-            throw new RuntimeException(
-                "Funcionário deve possuir pelo menos um ponto de venda."
-            );
+        if (funcionario.getEnderecoResidencia() == null || funcionario.getEnderecoResidencia().getId() == null) {
+            throw new RuntimeException("Funcionário deve possuir endereço de residência válido.");
         }
 
+        Endereco endereco = enderecoService.buscarPorId(funcionario.getEnderecoResidencia().getId())
+                .orElseThrow(() -> new RuntimeException("Endereço de residência não encontrado."));
+
+        funcionario.setEnderecoResidencia(endereco);
+
+        if (funcionario.getPontosVenda() == null || funcionario.getPontosVenda().isEmpty()) {
+            throw new RuntimeException("Funcionário deve possuir pelo menos um ponto de venda.");
+        }
+
+        List<PontoVenda> pontosValidos = new ArrayList<>();
+        for (PontoVenda ponto : funcionario.getPontosVenda()) {
+            if (ponto == null || ponto.getId() == null) {
+                throw new RuntimeException("Cada ponto de venda deve possuir um ID.");
+            }
+            PontoVenda pontoExistente = pontoVendaService.buscarPorId(ponto.getId())
+                    .orElseThrow(() -> new RuntimeException("Ponto de venda não encontrado: " + ponto.getId()));
+            pontosValidos.add(pontoExistente);
+        }
+
+        funcionario.setPontosVenda(pontosValidos);
+
+        // RN011 - máximo de 2 pontos de venda
         if (funcionario.getPontosVenda().size() > 2) {
-
-            throw new RuntimeException(
-                "Funcionário não pode estar vinculado a mais de dois pontos de venda."
-            );
+            throw new RuntimeException("Funcionário não pode estar vinculado a mais de dois pontos de venda.");
         }
 
-        if (funcionario.getPontosVenda().size() > 1 &&
-            (funcionario.getAutorizadoMultiplosPontos() == null ||
-             !funcionario.getAutorizadoMultiplosPontos())) {
-
-            throw new RuntimeException(
-                "Funcionário precisa de autorização do gerente para trabalhar em múltiplos pontos."
-            );
+        // RN013 - autorização para múltiplos pontos
+        if (funcionario.getPontosVenda().size() > 1 && !Boolean.TRUE.equals(funcionario.getAutorizadoMultiplosPontos())) {
+            throw new RuntimeException("Funcionário precisa de autorização do gerente para trabalhar em múltiplos pontos.");
         }
+
+        // RN012 - primeiro funcionário do ponto é gerente
+        boolean gerente = false;
+        for (PontoVenda ponto : funcionario.getPontosVenda()) {
+            long quantidade = repo.contarFuncionariosDoPonto(ponto.getId());
+            if (quantidade == 0) {
+                gerente = true;
+                break;
+            }
+        }
+        funcionario.setCargo(gerente ? "GERENTE" : "VENDEDOR");
 
         return repo.save(funcionario);
     }

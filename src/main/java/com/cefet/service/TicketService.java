@@ -7,6 +7,7 @@ import java.util.Optional;
 import com.cefet.entity.Reserva;
 import com.cefet.entity.Ticket;
 import com.cefet.repository.TicketRepository;
+import com.cefet.service.ReservaService;
 
 import jakarta.transaction.Transactional;
 
@@ -14,42 +15,32 @@ import jakarta.transaction.Transactional;
 public class TicketService {
 
     private final TicketRepository repo;
+    private final ReservaService reservaService;
 
-    public TicketService(TicketRepository repo) {
+    public TicketService(TicketRepository repo, ReservaService reservaService) {
         this.repo = repo;
+        this.reservaService = reservaService;
     }
 
     @Transactional
-    public Ticket emitirTicket(Reserva reserva) {
+    public Ticket emitirTicket(Long reservaId) {
+        Reserva reserva = reservaService.buscarPorId(reservaId);
 
         if (!"CONFIRMADA".equals(reserva.getStatus())) {
-
-            throw new RuntimeException(
-                    "Pagamento deve estar confirmado para emissão do ticket."
-            );
+            throw new RuntimeException("Pagamento deve estar confirmado para emissão do ticket.");
         }
 
         if (reserva.getPagamento() == null) {
-
-            throw new RuntimeException(
-                    "Reserva não possui pagamento associado."
-            );
+            throw new RuntimeException("Reserva não possui pagamento associado.");
         }
 
         if (reserva.getTicket() != null) {
-
-            throw new RuntimeException(
-                    "Esta reserva já possui ticket emitido."
-            );
+            throw new RuntimeException("Esta reserva já possui ticket emitido.");
         }
 
         Ticket ticket = new Ticket();
-
         ticket.setReserva(reserva);
-
-        ticket.setValor(
-                reserva.getPagamento().getValorFinal()
-        );
+        ticket.setValor(reserva.getPagamento().getValorFinal());
 
         return repo.save(ticket);
     }

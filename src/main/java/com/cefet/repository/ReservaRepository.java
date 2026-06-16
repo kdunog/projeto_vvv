@@ -16,6 +16,8 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
         JOIN FETCH r.cidadeOrigem
         JOIN FETCH r.cidadeDestino
         JOIN FETCH r.modal
+        LEFT JOIN FETCH r.pagamento
+        LEFT JOIN FETCH r.ticket
     """)
     List<Reserva> findAllCompleto();
 
@@ -25,6 +27,8 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
         JOIN FETCH r.cidadeOrigem
         JOIN FETCH r.cidadeDestino
         JOIN FETCH r.modal
+        LEFT JOIN FETCH r.pagamento
+        LEFT JOIN FETCH r.ticket
         WHERE r.id = :id
     """)
     Optional<Reserva> findByIdCompleto(Long id);

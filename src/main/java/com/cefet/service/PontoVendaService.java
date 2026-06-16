@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
-import com.cefet.entity.Funcionario;
+import com.cefet.entity.Endereco;
 import com.cefet.entity.PontoVenda;
 import com.cefet.repository.PontoVendaRepository;
 
@@ -13,9 +13,11 @@ import com.cefet.repository.PontoVendaRepository;
 public class PontoVendaService {
 
     private final PontoVendaRepository repo;
+    private final EnderecoService enderecoService;
 
-    public PontoVendaService(PontoVendaRepository repo) {
+    public PontoVendaService(PontoVendaRepository repo, EnderecoService enderecoService) {
         this.repo = repo;
+        this.enderecoService = enderecoService;
     }
 
     public List<PontoVenda> listarTodos() {
@@ -27,30 +29,14 @@ public class PontoVendaService {
     }
 
     public PontoVenda salvar(PontoVenda pontoVenda) {
-
-        boolean possuiGerente = false;
-
-        if (pontoVenda.getFuncionarios() != null) {
-
-            for (Funcionario funcionario :
-                    pontoVenda.getFuncionarios()) {
-
-                if ("GERENTE".equalsIgnoreCase(
-                        funcionario.getCargo())) {
-
-                    possuiGerente = true;
-                    break;
-                }
-            }
+        if (pontoVenda.getEndereco() == null || pontoVenda.getEndereco().getId() == null) {
+            throw new RuntimeException("Ponto de venda deve possuir endereço válido.");
         }
 
-        if (!possuiGerente) {
+        Endereco endereco = enderecoService.buscarPorId(pontoVenda.getEndereco().getId())
+                .orElseThrow(() -> new RuntimeException("Endereço não encontrado."));
 
-            throw new RuntimeException(
-                    "Todo ponto de venda deve possuir um gerente."
-            );
-        }
-
+        pontoVenda.setEndereco(endereco);
         return repo.save(pontoVenda);
     }
 

@@ -20,9 +20,6 @@ public class PontoVenda {
     @JoinColumn(name = "id_endereco", nullable = false)
     private Endereco endereco;
 
-    @ManyToMany(mappedBy = "pontosVenda")
-    private List<Funcionario> funcionarios;
-
     @Column(length = 20)
     private String telefone;
 

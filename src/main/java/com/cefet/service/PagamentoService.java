@@ -2,14 +2,16 @@ package com.cefet.service;
 
 import com.cefet.entity.Pagamento;
 import com.cefet.entity.Reserva;
-import com.cefet.entity.Credito;
 import com.cefet.repository.PagamentoRepository;
+import com.cefet.repository.ReservaRepository;
+import com.cefet.service.ReservaService;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +20,8 @@ import java.util.Optional;
 public class PagamentoService {
 
     private final PagamentoRepository repo;
+    private final ReservaService reservaService;
+    private final ReservaRepository reservaRepository;
 
     @Transactional(readOnly = true)
     public List<Pagamento> listarTodos() {
@@ -32,93 +36,60 @@ public class PagamentoService {
     @Transactional
     public Pagamento salvar(Pagamento pagamento) {
 
-        Reserva reserva = pagamento.getReserva();
-
-        if (reserva == null) {
-            throw new RuntimeException(
-                    "Pagamento deve possuir uma reserva."
-            );
+        if (pagamento == null || pagamento.getReserva() == null || pagamento.getReserva().getId() == null) {
+            throw new RuntimeException("Pagamento deve possuir uma reserva com ID.");
         }
 
-        // RN004: desconto infantil
+        Reserva reserva = reservaService.buscarPorId(pagamento.getReserva().getId());
+        pagamento.setReserva(reserva);
+
+        if (pagamento.getValor() == null) {
+            throw new RuntimeException("Pagamento deve possuir um valor.");
+        }
+
+        // RN004
         Integer idade = reserva.getPassageiro().getIdade();
 
         if (idade != null && idade > 2 && idade < 10) {
-
-            pagamento.setDesconto(
-                    pagamento.getValor()
-                            .multiply(BigDecimal.valueOf(0.40))
-            );
-
+            pagamento.setDesconto(pagamento.getValor().multiply(BigDecimal.valueOf(0.40)));
         } else {
-
             pagamento.setDesconto(BigDecimal.ZERO);
         }
 
-        // RN009: parcelamento com juros
-        Credito credito = pagamento.getCredito();
-
-        if (credito != null &&
-            credito.getNumeroDeParcelas() > 4) {
-
-            pagamento.setJuros(
-                    pagamento.getValor()
-                            .multiply(BigDecimal.valueOf(0.05))
-            );
-
+        // RN009
+        if (pagamento.getNumeroDeParcelas() != null && pagamento.getNumeroDeParcelas() > 3) {
+            pagamento.setJuros(pagamento.getValor().multiply(BigDecimal.valueOf(0.05)));
         } else {
-
             pagamento.setJuros(BigDecimal.ZERO);
         }
 
-        // cálculo do valor final
-        pagamento.setValorFinal(
+        pagamento.setValorFinal(pagamento.getValor().subtract(pagamento.getDesconto()).add(pagamento.getJuros()));
 
-                pagamento.getValor()
-                        .subtract(pagamento.getDesconto())
-                        .add(pagamento.getJuros())
-        );
-
-        // RN010: pagamento aprovado
+        // RN010 - pagamento autorizado imediatamente
         pagamento.setStatus("CONFIRMADO");
+        pagamento.setConfirmadoPelaOperadora(true);
+        pagamento.setDataConfirmacaoOperadora(LocalDateTime.now());
 
-        // reserva confirmada após pagamento
-        if (reserva.isVendaOnline()) {
+        reserva.setStatus("CONFIRMADA");
+        reserva.setConfirmada(true);
 
-        reserva.setStatus(
-                "AGUARDANDO_OPERADORA");
-
-        reserva.setConfirmada(false);
-
-        } else {
-
-        reserva.setStatus(
-                "AGUARDANDO_FUNCIONARIO");
-
-        reserva.setConfirmada(false);
-        }   
-
-
+        reservaRepository.save(reserva);
         return repo.save(pagamento);
     }
 
-    @Transactional
-    public void deletar(Long id) {
-        repo.deleteById(id);
-    }
-
+    // RN017
     @Transactional
     public Pagamento confirmarOperadora(Long id) {
 
         Pagamento pagamento = repo.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Pagamento não encontrado"));
+                                "Pagamento não encontrado."));
 
         pagamento.setConfirmadoPelaOperadora(true);
 
         pagamento.setDataConfirmacaoOperadora(
-                java.time.LocalDateTime.now());
+                LocalDateTime.now());
 
         pagamento.getReserva()
                 .setStatus("CONFIRMADA");
@@ -127,5 +98,10 @@ public class PagamentoService {
                 .setConfirmada(true);
 
         return repo.save(pagamento);
+    }
+
+    @Transactional
+    public void deletar(Long id) {
+        repo.deleteById(id);
     }
 }

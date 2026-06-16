@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Venda de Passagens</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>Sistema de Venda de Passagens</h1>
+        <p>Interface simples para criar e visualizar passageiros, cidades, modais, reservas e pagamentos.</p>
+    </header>
+    <nav>
+        <button onclick="showSection('passageiros')">Passageiros</button>
+        <button onclick="showSection('cidades')">Cidades</button>
+        <button onclick="showSection('transportadoras')">Transportadoras</button>
+        <button onclick="showSection('modais')">Modais</button>
+        <button onclick="showSection('reservas')">Reservas</button>
+        <button onclick="showSection('pagamentos')">Pagamentos</button>
+        <button onclick="showSection('enderecos')">Endereços</button>
+        <button onclick="showSection('pontos-venda')">Pontos de Venda</button>
+        <button onclick="showSection('funcionarios')">Funcionários</button>
+        <button onclick="showSection('tickets')">Tickets</button>
+    </nav>
+
+    <main>
+        <div id="message" class="message"></div>
+
+        <section id="passageiros" class="panel">
+            <h2>Passageiros</h2>
+            <form id="passageiro-form" onsubmit="createPassageiro(event)">
+                <label>Nome <input name="nome" required /></label>
+                <label>CPF <input name="cpf" required /></label>
+                <label>Telefone <input name="telefone" /></label>
+                <label>Email <input name="email" type="email" /></label>
+                <label>Senha <input name="senha" type="password" required /></label>
+                <label>Idade <input name="idade" type="number" min="0" /></label>
+                <button type="submit">Criar Passageiro</button>
+            </form>
+            <div class="list-container">
+                <h3>Passageiros cadastrados</h3>
+                <ul id="passageiros-list"></ul>
+            </div>
+        </section>
+
+        <section id="cidades" class="panel hidden">
+            <h2>Cidades</h2>
+            <form id="cidade-form" onsubmit="createCidade(event)">
+                <label>Nome <input name="nome" required /></label>
+                <label>Identificador <input name="indentificador" maxlength="3" required /></label>
+                <label>Estado <input name="estado" required /></label>
+                <button type="submit">Criar Cidade</button>
+            </form>
+            <div class="list-container">
+                <h3>Cidades cadastradas</h3>
+                <ul id="cidades-list"></ul>
+            </div>
+        </section>
+
+        <section id="transportadoras" class="panel hidden">
+            <h2>Transportadoras</h2>
+            <form id="transportadora-form" onsubmit="createTransportadora(event)">
+                <label>Nome <input name="nome" required /></label>
+                <label>CNPJ <input name="cnpj" required /></label>
+                <button type="submit">Criar Transportadora</button>
+            </form>
+            <div class="list-container">
+                <h3>Transportadoras cadastradas</h3>
+                <ul id="transportadoras-list"></ul>
+            </div>
+        </section>
+
+        <section id="modais" class="panel hidden">
+            <h2>Modais</h2>
+            <form id="modal-form" onsubmit="createModal(event)">
+                <label>Tipo <input name="tipo" required /></label>
+                <label>Capacidade <input name="capacidade" type="number" min="1" required /></label>
+                <label>Última manutenção <input name="ultimaManutencao" type="date" /></label>
+                <label>Transportadora <select id="transportadoraId" name="transportadoraId" required></select></label>
+                <button type="submit">Criar Modal</button>
+            </form>
+            <div class="list-container">
+                <h3>Modais cadastrados</h3>
+                <ul id="modais-list"></ul>
+            </div>
+        </section>
+
+        <section id="reservas" class="panel hidden">
+            <h2>Reservas</h2>
+            <form id="reserva-form" onsubmit="createReserva(event)">
+                <label>Passageiro ID <input name="passageiroId" type="number" required /></label>
+                <label>Acompanhante ID <input name="acompanhanteId" type="number" /></label>
+                <label>Cidade Origem ID <input name="origemId" type="number" required /></label>
+                <label>Cidade Destino ID <input name="destinoId" type="number" required /></label>
+                <label>Modal ID <input name="modalId" type="number" required /></label>
+                <label>Data da Reserva <input name="dataReserva" type="date" required /></label>
+                <label>Venda Online <select name="vendaOnline"><option value="true">Sim</option><option value="false">Não</option></select></label>
+                <label>Tipo de Venda <input name="tipoVenda" /></label>
+                <button type="submit">Criar Reserva</button>
+            </form>
+            <div class="list-container">
+                <h3>Reservas cadastradas</h3>
+                <ul id="reservas-list"></ul>
+            </div>
+        </section>
+
+        <section id="pagamentos" class="panel hidden">
+            <h2>Pagamentos</h2>
+            <form id="pagamento-form" onsubmit="createPagamento(event)">
+                <label>Reserva ID <input id="pagamentoReservaId" name="reservaId" type="number" required /></label>
+                <label>Valor <input name="valor" type="number" step="0.01" required onchange="updateJurosInfo()" /></label>
+                <label>Forma de pagamento <select id="metodoPagamento" name="metodoPagamento" required onchange="updatePagamentoFields()">
+                    <option value="">Selecionar opção</option>
+                    <option value="BOLETO">Boleto</option>
+                    <option value="CARTAO_CREDITO">Cartão Crédito</option>
+                    <option value="CARTAO_DEBITO">Cartão Débito</option>
+                    <option value="PIX">Pix</option>
+                </select></label>
+                <div id="pagamentoInfo" class="info-text">Selecione a forma de pagamento para ver os campos adicionais.</div>
+                <div id="creditoFields" class="hidden">
+                    <label>Número do Cartão <input id="numeroCartao" name="numeroCartao" type="text" maxlength="19" placeholder="0000 0000 0000 0000" /></label>
+                    <label>CVV <input id="cvv" name="cvv" type="text" maxlength="4" placeholder="000" /></label>
+                    <label>Data de Validade (MM/AA) <input id="dataValidade" name="dataValidade" type="text" maxlength="5" placeholder="12/25" /></label>
+                    <label>Parcelas (máx. 12) <input id="numeroParcelas" name="numeroParcelas" type="number" min="1" max="12" onchange="updateJurosInfo()" /></label>
+                    <div id="jurosInfo" class="info-text">Sem juros até 3 parcelas; 5% de juros a partir de 4 parcelas.</div>
+                    <div id="valorTotalInfo" class="info-text hidden"></div>
+                </div>
+                <div id="debitoFields" class="hidden">
+                    <label>Número do Cartão <input id="numeroCartaoDebito" name="numeroCartaoDebito" type="text" maxlength="19" placeholder="0000 0000 0000 0000" /></label>
+                    <label>CVV <input id="cvvDebito" name="cvvDebito" type="text" maxlength="4" placeholder="000" /></label>
+                    <label>Data de Validade (MM/AA) <input id="dataValidadeDebito" name="dataValidadeDebito" type="text" maxlength="5" placeholder="12/25" /></label>
+                </div>
+
+                <div id="boletoInfo" class="info-text hidden">Pagamento por boleto. Nenhum campo adicional é necessário.</div>
+                <div id="pixInfo" class="info-text hidden">Pagamento por Pix. Nenhum campo adicional é necessário.</div>
+                <button type="submit">Processar Pagamento</button>
+            </form>
+            <div class="list-container">
+                <h3>Pagamentos realizados</h3>
+                <ul id="pagamentos-list"></ul>
+            </div>
+        </section>
+
+        <section id="enderecos" class="panel hidden">
+            <h2>Endereços</h2>
+            <form id="endereco-form" onsubmit="createEndereco(event)">
+                <label>Cidade <select id="endereçoCidadeId" name="cidadeId" required></select></label>
+                <label>Logradouro <input name="logradouro" required /></label>
+                <label>Número <input name="numero" type="number" required /></label>
+                <label>Complemento <input name="complemento" /></label>
+                <label>Bairro <input name="bairro" /></label>
+                <label>CEP <input name="cep" /></label>
+                <button type="submit">Criar Endereço</button>
+            </form>
+            <div class="list-container">
+                <h3>Endereços cadastrados</h3>
+                <ul id="enderecos-list"></ul>
+            </div>
+        </section>
+
+        <section id="pontos-venda" class="panel hidden">
+            <h2>Pontos de Venda</h2>
+            <form id="ponto-venda-form" onsubmit="createPontoVenda(event)">
+                <label>Endereço <select id="pontoVendaEnderecoId" name="enderecoId" required></select></label>
+                <label>Telefone <input name="telefone" /></label>
+                <label>CNPJ <input name="cnpj" /></label>
+                <button type="submit">Criar Ponto de Venda</button>
+            </form>
+            <div class="list-container">
+                <h3>Pontos de venda cadastrados</h3>
+                <ul id="pontos-venda-list"></ul>
+            </div>
+        </section>
+
+        <section id="funcionarios" class="panel hidden">
+            <h2>Funcionários</h2>
+            <form id="funcionario-form" onsubmit="createFuncionario(event)">
+                <label>Nome <input name="nome" required /></label>
+                <label>CPF <input name="cpf" required /></label>
+                <label>Telefone <input name="telefone" /></label>
+                <label>Email <input name="email" type="email" /></label>
+                <label>Senha <input name="senha" type="password" /></label>
+                <label>Endereço <select id="funcionarioEnderecoId" name="enderecoId" required></select></label>
+                <label>Pontos de Venda <select id="funcionarioPontoVendaId" name="pontosVenda" multiple required></select></label>
+                <label>Autorizado múltiplos pontos <select name="autorizadoMultiplosPontos"><option value="false">Não</option><option value="true">Sim</option></select></label>
+                <button type="submit">Criar Funcionário</button>
+            </form>
+            <div class="list-container">
+                <h3>Funcionários cadastrados</h3>
+                <ul id="funcionarios-list"></ul>
+            </div>
+        </section>
+
+        <section id="tickets" class="panel hidden">
+            <h2>Tickets</h2>
+            <form id="ticket-form" onsubmit="emitirTicket(event)">
+                <label>Reserva ID <input id="ticketReservaId" name="reservaId" type="number" required /></label>
+                <button type="submit">Emitir Ticket</button>
+            </form>
+            <div class="list-container">
+                <h3>Tickets emitidos</h3>
+                <ul id="tickets-list"></ul>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

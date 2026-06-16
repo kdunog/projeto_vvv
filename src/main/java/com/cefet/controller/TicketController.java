@@ -25,13 +25,16 @@ public class TicketController {
     }
 
     @PostMapping("/emitir")
-public ResponseEntity<?> emitir(@RequestBody Reserva reserva) {
-    try {
-        return ResponseEntity.ok(service.emitirTicket(reserva));
-    } catch (RuntimeException e) {
-        return ResponseEntity.badRequest().body(e.getMessage());
+    public ResponseEntity<?> emitir(@RequestBody Reserva reserva) {
+        try {
+            if (reserva == null || reserva.getId() == null) {
+                throw new RuntimeException("Reserva deve possuir ID para emissão de ticket.");
+            }
+            return ResponseEntity.ok(service.emitirTicket(reserva.getId()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
-}
 
 
     @GetMapping

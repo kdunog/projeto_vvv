@@ -1,12 +1,18 @@
 package com.cefet.service;
 
+import com.cefet.entity.Cidade;
 import com.cefet.entity.Funcionario;
+import com.cefet.entity.Modal;
+import com.cefet.entity.Passageiro;
 import com.cefet.entity.Reserva;
 import com.cefet.repository.ReservaRepository;
+import com.cefet.service.CidadeService;
+import com.cefet.service.ModalService;
+import com.cefet.service.PassageiroService;
 
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +22,9 @@ import java.util.List;
 public class ReservaService {
 
     private final ReservaRepository reservaRepository;
+    private final PassageiroService passageiroService;
+    private final CidadeService cidadeService;
+    private final ModalService modalService;
 
     @Transactional(readOnly = true)
     public List<Reserva> listarTodos() {
@@ -32,65 +41,72 @@ public class ReservaService {
     @Transactional
     public Reserva salvar(Reserva reserva) {
 
-        if (reserva.getCidadeOrigem() == null ||
-            reserva.getCidadeDestino() == null) {
-
-            throw new RuntimeException(
-                    "Origem e destino são obrigatórios.");
+        if (reserva.getPassageiro() == null || reserva.getPassageiro().getId() == null) {
+            throw new RuntimeException("Passageiro é obrigatório.");
         }
 
-        if ("EM_MANUTENCAO".equals(
-                reserva.getModal().getStatus())) {
-
-            throw new RuntimeException(
-                    "Modal em manutenção não pode receber reservas.");
+        if (reserva.getCidadeOrigem() == null || reserva.getCidadeOrigem().getId() == null ||
+                reserva.getCidadeDestino() == null || reserva.getCidadeDestino().getId() == null) {
+            throw new RuntimeException("Origem e destino são obrigatórios.");
         }
 
-        long reservasNoModal =
-                reservaRepository.countByModal(
-                        reserva.getModal());
-
-        if (reservasNoModal >=
-            reserva.getModal().getCapacidade()) {
-
-            throw new RuntimeException(
-                    "Capacidade do modal atingida.");
+        if (reserva.getModal() == null || reserva.getModal().getId() == null) {
+            throw new RuntimeException("Modal é obrigatório.");
         }
 
-        Integer idade =
-                reserva.getPassageiro().getIdade();
+        Passageiro passageiro = passageiroService.buscarPorId(reserva.getPassageiro().getId())
+                .orElseThrow(() -> new RuntimeException("Passageiro não encontrado."));
 
-        if (idade != null &&
-            idade > 2 &&
-            idade < 10) {
+        Cidade cidadeOrigem = cidadeService.buscarPorId(reserva.getCidadeOrigem().getId())
+                .orElseThrow(() -> new RuntimeException("Cidade de origem não encontrada."));
 
-            if (reserva.getAcompanhante() == null) {
+        Cidade cidadeDestino = cidadeService.buscarPorId(reserva.getCidadeDestino().getId())
+                .orElseThrow(() -> new RuntimeException("Cidade de destino não encontrada."));
 
-                throw new RuntimeException(
-                        "Passageiros entre 2 e 10 anos devem possuir acompanhante.");
+        Modal modal = modalService.buscarPorId(reserva.getModal().getId())
+                .orElseThrow(() -> new RuntimeException("Modal não encontrado."));
+
+        if ("EM_MANUTENCAO".equals(modal.getStatus())) {
+            throw new RuntimeException("Modal em manutenção não pode receber reservas.");
+        }
+
+        long reservasNoModal = reservaRepository.countByModal(modal);
+
+        if (reservasNoModal >= modal.getCapacidade()) {
+            throw new RuntimeException("Capacidade do modal atingida.");
+        }
+
+        Integer idade = passageiro.getIdade();
+
+        if (idade != null && idade > 2 && idade < 10) {
+            if (reserva.getAcompanhante() == null || reserva.getAcompanhante().getId() == null) {
+                throw new RuntimeException("Passageiros entre 2 e 10 anos devem possuir acompanhante.");
             }
 
-            Integer idadeAcompanhante =
-                    reserva.getAcompanhante().getIdade();
+            Passageiro acompanhante = passageiroService.buscarPorId(reserva.getAcompanhante().getId())
+                    .orElseThrow(() -> new RuntimeException("Acompanhante não encontrado."));
 
-            if (idadeAcompanhante == null ||
-                idadeAcompanhante < 21) {
+            Integer idadeAcompanhante = acompanhante.getIdade();
 
-                throw new RuntimeException(
-                        "O acompanhante deve possuir mais de 21 anos.");
+            if (idadeAcompanhante == null || idadeAcompanhante < 21) {
+                throw new RuntimeException("O acompanhante deve possuir mais de 21 anos.");
             }
 
-            if (reserva.getPassageiro().getId() != null &&
-                reserva.getAcompanhante().getId() != null &&
-                reserva.getPassageiro().getId()
-                        .equals(reserva.getAcompanhante().getId())) {
-
-                throw new RuntimeException(
-                        "O acompanhante não pode ser o próprio passageiro.");
+            if (passageiro.getId() != null && acompanhante.getId() != null &&
+                    passageiro.getId().equals(acompanhante.getId())) {
+                throw new RuntimeException("O acompanhante não pode ser o próprio passageiro.");
             }
+
+            reserva.setAcompanhante(acompanhante);
         }
+
+        reserva.setPassageiro(passageiro);
+        reserva.setCidadeOrigem(cidadeOrigem);
+        reserva.setCidadeDestino(cidadeDestino);
+        reserva.setModal(modal);
 
         reserva.setStatus("PENDENTE");
+        reserva.setConfirmada(false);
 
         return reservaRepository.save(reserva);
     }
@@ -100,13 +116,13 @@ public class ReservaService {
         reservaRepository.deleteById(id);
     }
 
+    // RN016
     @Transactional
     public Reserva confirmarVendaFisica(
             Long reservaId,
             Funcionario funcionario) {
 
-        Reserva reserva =
-                buscarPorId(reservaId);
+        Reserva reserva = buscarPorId(reservaId);
 
         if (reserva.isVendaOnline()) {
 
@@ -114,8 +130,7 @@ public class ReservaService {
                     "Apenas vendas físicas podem ser confirmadas por funcionário.");
         }
 
-        reserva.setFuncionarioConfirmacao(
-                funcionario);
+        reserva.setFuncionarioConfirmacao(funcionario);
 
         reserva.setDataConfirmacao(
                 LocalDateTime.now());
@@ -124,32 +139,6 @@ public class ReservaService {
 
         reserva.setStatus("CONFIRMADA");
 
-        return reservaRepository.save(
-                reserva);
-    }
-
-    @Transactional
-    public Reserva aprovarVendaOnline(
-            Reserva reserva,
-            Funcionario funcionario) {
-
-        if (!reserva.isVendaOnline()) {
-
-            throw new RuntimeException(
-                    "A reserva não é online.");
-        }
-
-        reserva.setConfirmada(true);
-
-        reserva.setFuncionarioConfirmacao(
-                funcionario);
-
-        reserva.setDataConfirmacao(
-                LocalDateTime.now());
-
-        reserva.setStatus("CONFIRMADA");
-
-        return reservaRepository.save(
-                reserva);
+        return reservaRepository.save(reserva);
     }
 }

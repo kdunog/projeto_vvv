@@ -1,5 +1,6 @@
 package com.cefet.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,13 +17,20 @@ public class Pagamento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_da_reserva", nullable = false)
+    @JsonIgnoreProperties({"pagamento", "ticket"})
     private Reserva reserva;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_credito")
     private Credito credito; // relação adicionada
+
+    @Column(length = 50)
+    private String metodoPagamento;
+
+    @Column(name = "numero_de_parcelas")
+    private Integer numeroDeParcelas;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal valor;
