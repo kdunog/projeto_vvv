@@ -129,11 +129,29 @@ async function createCidade(event) {
     loadCidades();
 }
 
+function getModalDisponibilidade(modal, reservas) {
+    const capacidadeMaxima = Number(modal.capacidade) || 0;
+    const capacidadeAtual = reservas.filter(reserva => Number(reserva.modal?.id) === Number(modal.id)).length;
+    const disponibilidade = capacidadeAtual >= capacidadeMaxima ? 'Indisponível' : 'Disponível';
+    return {
+        capacidadeAtual,
+        capacidadeMaxima,
+        disponibilidade
+    };
+}
+
 async function loadModais() {
     const list = document.getElementById('modais-list');
     list.innerHTML = '<li>Carregando...</li>';
-    const modais = await request('/modais');
-    list.innerHTML = modais.map(m => `<li>${m.id} - ${m.tipo} (${m.capacidade}) - ${m.status || 'sem status'} - Transportadora: ${m.transportadora?.nome || 'N/A'}</li>`).join('');
+    const [modais, reservas] = await Promise.all([
+        request('/modais'),
+        request('/reservas')
+    ]);
+
+    list.innerHTML = modais.map(m => {
+        const { capacidadeAtual, capacidadeMaxima, disponibilidade } = getModalDisponibilidade(m, reservas);
+        return `<li>${m.id} - ${m.tipo} (${capacidadeAtual}/${capacidadeMaxima}) - ${disponibilidade} - Transportadora: ${m.transportadora?.nome || 'N/A'}</li>`;
+    }).join('');
 }
 
 async function loadTransportadoras() {
@@ -284,7 +302,10 @@ async function createReserva(event) {
     });
     form.reset();
     showMessage('Reserva criada com sucesso.');
-    loadReservas();
+    await Promise.all([
+        loadReservas(),
+        loadModais()
+    ]);
 }
 
 async function loadPagamentos() {
