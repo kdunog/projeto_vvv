@@ -124,7 +124,7 @@ public class ReservaService {
 
         Reserva reserva = buscarPorId(reservaId);
 
-        if (false) {
+        if (reserva.isVendaOnline()) {
 
             throw new RuntimeException(
                     "Apenas vendas físicas podem ser confirmadas por funcionário.");

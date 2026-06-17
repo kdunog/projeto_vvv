@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.cefet.entity.Endereco;
 import com.cefet.entity.Funcionario;
 import com.cefet.entity.PontoVenda;
 import com.cefet.repository.FuncionarioRepository;
@@ -15,10 +16,12 @@ import com.cefet.repository.FuncionarioRepository;
 public class FuncionarioService {
 
     private final FuncionarioRepository repo;
+    private final EnderecoService enderecoService;
     private final PontoVendaService pontoVendaService;
 
-    public FuncionarioService(FuncionarioRepository repo, PontoVendaService pontoVendaService) {
+    public FuncionarioService(FuncionarioRepository repo, EnderecoService enderecoService, PontoVendaService pontoVendaService) {
         this.repo = repo;
+        this.enderecoService = enderecoService;
         this.pontoVendaService = pontoVendaService;
     }
 
@@ -34,6 +37,15 @@ public class FuncionarioService {
 
     @Transactional
     public Funcionario salvar(Funcionario funcionario) {
+
+        if (funcionario.getEnderecoResidencia() == null || funcionario.getEnderecoResidencia().getId() == null) {
+            throw new RuntimeException("Funcionário deve possuir endereço de residência válido.");
+        }
+
+        Endereco endereco = enderecoService.buscarPorId(funcionario.getEnderecoResidencia().getId())
+                .orElseThrow(() -> new RuntimeException("Endereço de residência não encontrado."));
+
+        funcionario.setEnderecoResidencia(endereco);
 
         if (funcionario.getPontosVenda() == null || funcionario.getPontosVenda().isEmpty()) {
             throw new RuntimeException("Funcionário deve possuir pelo menos um ponto de venda.");
@@ -54,6 +66,11 @@ public class FuncionarioService {
         // RN011 - máximo de 2 pontos de venda
         if (funcionario.getPontosVenda().size() > 2) {
             throw new RuntimeException("Funcionário não pode estar vinculado a mais de dois pontos de venda.");
+        }
+
+        // RN013 - autorização para múltiplos pontos
+        if (funcionario.getPontosVenda().size() > 1 && !Boolean.TRUE.equals(funcionario.getAutorizadoMultiplosPontos())) {
+            throw new RuntimeException("Funcionário precisa de autorização do gerente para trabalhar em múltiplos pontos.");
         }
 
         // RN012 - primeiro funcionário do ponto é gerente

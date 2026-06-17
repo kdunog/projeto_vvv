@@ -29,6 +29,7 @@ public class Application {
 			passageiro.setCpf(cpfTeste);
 			passageiro.setTelefone("(31) 99999-0000");
 			passageiro.setEmail("teste@cefet.br");
+			passageiro.setSenha("123456");
 			passageiro.setIdade(30);
 
 			repository.save(passageiro);

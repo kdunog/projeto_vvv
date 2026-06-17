@@ -16,6 +16,7 @@ CREATE TABLE Passageiro (
     cpf VARCHAR(14) NOT NULL UNIQUE,
     telefone VARCHAR(20),
     email VARCHAR(100) UNIQUE,
+    senha VARCHAR(255) NOT NULL,
     idade INT
 );
 
@@ -76,21 +77,20 @@ CREATE TABLE PontoVenda (
 -- =====================================
 CREATE TABLE Funcionario (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    id_do_ponto_venda INT NOT NULL,
+    id_endereco_residencia INT NOT NULL,
     nome VARCHAR(100) NOT NULL,
     cpf VARCHAR(14) NOT NULL UNIQUE,
     telefone VARCHAR(20),
     email VARCHAR(100) UNIQUE,
-    cargo VARCHAR(50)
-);
+    senha VARCHAR(255),
+    cargo VARCHAR(50),
 
-CREATE TABLE funcionario_ponto_venda (
-    funcionario_id INT NOT NULL,
-    ponto_venda_id INT NOT NULL,
-    PRIMARY KEY (funcionario_id, ponto_venda_id),
-    FOREIGN KEY (funcionario_id)
-        REFERENCES Funcionario(id),
-    FOREIGN KEY (ponto_venda_id)
-        REFERENCES PontoVenda(id)
+    FOREIGN KEY (id_do_ponto_venda)
+        REFERENCES PontoVenda(id),
+
+    FOREIGN KEY (id_endereco_residencia)
+        REFERENCES Endereco(id)
 );
 
 -- =====================================

@@ -31,6 +31,7 @@ function showSection(id) {
     }
     if (id === 'funcionarios') {
         loadFuncionarios();
+        loadEnderecoOptions();
         loadPontoVendaOptions();
     }
     if (id === 'tickets') {
@@ -133,7 +134,8 @@ async function savePassageiro(event, id) {
         cpf: form.cpf.value,
         telefone: form.telefone.value,
         email: form.email.value,
-        idade: form.idade.value ? parseInt(form.idade.value, 10) : null
+        idade: form.idade.value ? parseInt(form.idade.value, 10) : null,
+        senha: form.senha.value || null
     };
 
     await request(`/passageiros/${id}`, {
@@ -154,6 +156,7 @@ async function createPassageiro(event) {
         cpf: form.cpf.value,
         telefone: form.telefone.value,
         email: form.email.value,
+        senha: form.senha.value, // <-- ADICIONE ESTA LINHA
         idade: parseInt(form.idade.value, 10)
     };
     await request('/passageiros', {
@@ -509,6 +512,11 @@ async function startEditReserva(id) {
             <input name="destinoId" type="number" value="${reserva.cidadeDestino?.id || ''}" required />
             <input name="modalId" type="number" value="${reserva.modal?.id || ''}" required />
             <input name="dataReserva" type="date" value="${reserva.dataReserva || ''}" required />
+            <select name="vendaOnline">
+                <option value="true" ${reserva.vendaOnline ? 'selected' : ''}>Sim</option>
+                <option value="false" ${!reserva.vendaOnline ? 'selected' : ''}>Não</option>
+            </select>
+            <input name="tipoVenda" value="${reserva.tipoVenda || ''}" />
             <input name="status" value="${reserva.status || ''}" />
             <div class="inline-edit-actions">
                 <button type="submit">Salvar</button>
@@ -528,6 +536,8 @@ async function saveReserva(event, id) {
         cidadeDestino: { id: parseInt(form.destinoId.value, 10) },
         modal: { id: parseInt(form.modalId.value, 10) },
         dataReserva: form.dataReserva.value,
+        vendaOnline: form.vendaOnline.value === 'true',
+        tipoVenda: form.tipoVenda.value,
         status: form.status.value
     };
     await request(`/reservas/${id}`, {
@@ -551,7 +561,9 @@ async function createReserva(event) {
         cidadeOrigem: { id: parseInt(form.origemId.value, 10) },
         cidadeDestino: { id: parseInt(form.destinoId.value, 10) },
         modal: { id: parseInt(form.modalId.value, 10) },
-        dataReserva: form.dataReserva.value
+        dataReserva: form.dataReserva.value,
+        vendaOnline: form.vendaOnline.value === 'true',
+        tipoVenda: form.tipoVenda.value
     };
     await request('/reservas', {
         method: 'POST',
@@ -916,7 +928,7 @@ async function loadFuncionarios() {
     const funcionarios = await request('/funcionarios');
     list.innerHTML = funcionarios.map(f => `
         <li id="funcionario-row-${f.id}">
-            <span>${f.id} - ${f.nome} (${f.cpf}) - Cargo: ${f.cargo || 'N/A'}</span>
+            <span>${f.id} - ${f.nome} (${f.cpf}) - Cargo: ${f.cargo || 'N/A'} - Endereço: ${f.enderecoResidencia?.logradouro || 'N/A'}</span>
             <span class="item-actions">
                 <button class="edit-btn" onclick="startEditFuncionario(${f.id})" title="Editar funcionário">✏️</button>
                 <button class="delete-btn" onclick="deleteEntity('/funcionarios', ${f.id}, loadFuncionarios)" title="Excluir funcionário">🗑️</button>
@@ -935,7 +947,13 @@ async function startEditFuncionario(id) {
             <input name="cpf" value="${funcionario.cpf || ''}" required />
             <input name="telefone" value="${funcionario.telefone || ''}" />
             <input name="email" type="email" value="${funcionario.email || ''}" />
+            <input name="senha" type="password" value="${funcionario.senha || ''}" />
+            <input name="enderecoId" type="number" value="${funcionario.enderecoResidencia?.id || ''}" required />
             <input name="cargo" value="${funcionario.cargo || ''}" />
+            <select name="autorizadoMultiplosPontos">
+                <option value="true" ${funcionario.autorizadoMultiplosPontos ? 'selected' : ''}>Sim</option>
+                <option value="false" ${!funcionario.autorizadoMultiplosPontos ? 'selected' : ''}>Não</option>
+            </select>
             <div class="inline-edit-actions">
                 <button type="submit">Salvar</button>
                 <button type="button" onclick="loadFuncionarios()">Cancelar</button>
@@ -944,44 +962,66 @@ async function startEditFuncionario(id) {
     `;
 }
 
-async function saveFuncionario(event, id) {
-    event.preventDefault();
-    const form = event.target;
-    const payload = {
-        nome: form.nome.value,
-        cpf: form.cpf.value,
-        telefone: form.telefone.value,
-        email: form.email.value,
-        cargo: form.cargo.value
-    };
-    await request(`/funcionarios/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    showMessage('Funcionário atualizado com sucesso.');
-    await loadFuncionarios();
-}
-
 async function createFuncionario(event) {
     event.preventDefault();
     const form = event.target;
-    const selectedOptions = Array.from(form.pontosVenda.selectedOptions).map(opt => ({ id: parseInt(opt.value, 10) }));
+    
+    // Captura os múltiplos pontos de venda selecionados
+    const selectedOptions = Array.from(form.pontosVenda.selectedOptions).map(opt => ({ 
+        id: parseInt(opt.value, 10) 
+    }));
+
     const payload = {
         nome: form.nome.value,
         cpf: form.cpf.value,
-        telefone: form.telefone.value,
-        email: form.email.value,
-        pontosVenda: selectedOptions
+        telefone: form.telefone.value || null,
+        email: form.email.value || null,
+        senha: form.senha.value || null,
+        enderecoResidencia: { id: parseInt(form.enderecoId.value, 10) },
+        pontosVenda: selectedOptions,
+        autorizadoMultiplosPontos: form.autorizadoMultiplosPontos.value === 'true'
     };
+
+    // Ajustado para printar o payload real com segurança
+    console.log("Dados enviados ao servidor:", payload);
+
     await request('/funcionarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     });
+
     form.reset();
     showMessage('Funcionário criado com sucesso.');
     loadFuncionarios();
+}
+
+async function saveFuncionario(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    
+    const payload = {
+        nome: form.nome.value,
+        cpf: form.cpf.value,
+        telefone: form.telefone.value || null,
+        email: form.email.value || null,
+        senha: form.senha.value || null,
+        enderecoResidencia: { id: parseInt(form.enderecoId.value, 10) },
+        pontosVenda: selectedOptions,
+
+        // Proteção caso o campo cargo não exista no formulário em tela:
+        cargo: form.cargo ? form.cargo.value : null, 
+        autorizadoMultiplosPontos: form.autorizadoMultiplosPontos.value === 'true'
+    };
+
+    await request(`/funcionarios/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    showMessage('Funcionário atualizado com sucesso.');
+    await loadFuncionarios();
 }
 
 async function loadTickets() {

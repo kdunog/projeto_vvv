@@ -65,6 +65,9 @@ public class PassageiroController {
                     if (dadosAtualizados.getEmail() != null) {
                         passageiro.setEmail(dadosAtualizados.getEmail());
                     }
+                    if (dadosAtualizados.getSenha() != null) {
+                        passageiro.setSenha(dadosAtualizados.getSenha());
+                    }
                     if (dadosAtualizados.getIdade() != null) {
                         passageiro.setIdade(dadosAtualizados.getIdade());
                     }

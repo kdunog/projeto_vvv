@@ -63,7 +63,8 @@ public class ReservaController {
             if (reservaAtualizada.getModal() != null) reserva.setModal(reservaAtualizada.getModal());
             if (reservaAtualizada.getDataReserva() != null) reserva.setDataReserva(reservaAtualizada.getDataReserva());
             if (reservaAtualizada.getStatus() != null) reserva.setStatus(reservaAtualizada.getStatus());
-
+            reserva.setVendaOnline(reservaAtualizada.isVendaOnline());
+            if (reservaAtualizada.getTipoVenda() != null) reserva.setTipoVenda(reservaAtualizada.getTipoVenda());
             return ResponseEntity.ok(service.salvar(reserva));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

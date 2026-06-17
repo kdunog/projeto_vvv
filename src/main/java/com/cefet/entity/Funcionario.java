@@ -21,10 +21,15 @@ public class Funcionario {
 @JoinTable(
     name = "funcionario_ponto_venda",
     joinColumns = @JoinColumn(name = "funcionario_id"),
-    inverseJoinColumns = @JoinColumn(name = "ponto_venda_id")
+    inverseJoinColumns = @JoinColumn(name = "ponto_venda_id") // O Hibernate vai ligar isso à tabela configurada na classe PontoVenda (ponto_venda)
 )
 private List<PontoVenda> pontosVenda;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_endereco_residencia", nullable = false)
+    private Endereco enderecoResidencia;
+
+    
     @Column(nullable = false, length = 100)
     private String nome;
 
@@ -37,6 +42,11 @@ private List<PontoVenda> pontosVenda;
     @Column(unique = true, length = 100)
     private String email;
 
+    private String senha;
+
     @Column(length = 50)
     private String cargo;
+
+    @Column
+    private Boolean autorizadoMultiplosPontos;
 }

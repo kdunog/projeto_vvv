@@ -66,8 +66,10 @@ public class FuncionarioController {
                         if (funcionarioAtualizado.getCpf() != null) funcionario.setCpf(funcionarioAtualizado.getCpf());
                         if (funcionarioAtualizado.getTelefone() != null) funcionario.setTelefone(funcionarioAtualizado.getTelefone());
                         if (funcionarioAtualizado.getEmail() != null) funcionario.setEmail(funcionarioAtualizado.getEmail());
+                        if (funcionarioAtualizado.getSenha() != null) funcionario.setSenha(funcionarioAtualizado.getSenha());
                         if (funcionarioAtualizado.getCargo() != null) funcionario.setCargo(funcionarioAtualizado.getCargo());
-
+                        if (funcionarioAtualizado.getEnderecoResidencia() != null) funcionario.setEnderecoResidencia(funcionarioAtualizado.getEnderecoResidencia());
+                        if (funcionarioAtualizado.getAutorizadoMultiplosPontos() != null) funcionario.setAutorizadoMultiplosPontos(funcionarioAtualizado.getAutorizadoMultiplosPontos());
                         return ResponseEntity.ok(service.salvar(funcionario));
                     })
                     .orElse(ResponseEntity.notFound().build());

@@ -52,11 +52,24 @@ class FuncionarioServiceTest {
     }
 
     @Test
-    @DisplayName("Deve salvar funcionário com sucesso em dois pontos")
-    void deveSalvarComDoisPontos() {
+    @DisplayName("Deve lançar exceção ao tentar associar a dois pontos sem autorização do gerente")
+    void deveLancarExcecaoDoisPontosSemAutorizacao() {
         Funcionario funcionario = new Funcionario();
         List<PontoVenda> pontos = List.of(new PontoVenda(), new PontoVenda());
         funcionario.setPontosVenda(pontos);
+        funcionario.setAutorizadoMultiplosPontos(false); // Sem autorização
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> funcionarioService.salvar(funcionario));
+        assertEquals("Funcionário precisa de autorização do gerente para trabalhar em múltiplos pontos.", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Deve salvar funcionário com sucesso em dois pontos se possuir autorização do gerente")
+    void deveSalvarComDoisPontosEAutorizacao() {
+        Funcionario funcionario = new Funcionario();
+        List<PontoVenda> pontos = List.of(new PontoVenda(), new PontoVenda());
+        funcionario.setPontosVenda(pontos);
+        funcionario.setAutorizadoMultiplosPontos(true); // Autorizado
 
         when(funcionarioRepository.save(any(Funcionario.class))).thenReturn(funcionario);
 

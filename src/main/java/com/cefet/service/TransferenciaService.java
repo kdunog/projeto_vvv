@@ -20,7 +20,7 @@ public class TransferenciaService {
     public Transferencia transferirReservaOnline(
             Reserva reserva) {
 
-        if (true) {
+        if (!reserva.isVendaOnline()) {
 
             throw new RuntimeException(
                     "Apenas vendas online podem ser transferidas.");

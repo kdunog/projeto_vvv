@@ -34,7 +34,7 @@
                 <label>CPF <input name="cpf" required /></label>
                 <label>Telefone <input name="telefone" /></label>
                 <label>Email <input name="email" type="email" /></label>
-
+                <label>Senha <input name="senha" type="password" required /></label>
                 <label>Idade <input name="idade" type="number" min="0" /></label>
                 <button type="submit">Criar Passageiro</button>
             </form>
@@ -99,7 +99,8 @@
                 <label>Cidade Destino ID <input name="destinoId" type="number" required /></label>
                 <label>Modal ID <input name="modalId" type="number" required /></label>
                 <label>Data da Reserva <input name="dataReserva" type="date" required /></label>
-
+                <label>Venda Online <select name="vendaOnline"><option value="true">Sim</option><option value="false">Não</option></select></label>
+                <label>Tipo de Venda <input name="tipoVenda" /></label>
                 <button type="submit">Criar Reserva</button>
             </form>
             <div class="list-container">
@@ -183,7 +184,10 @@
                 <label>CPF <input name="cpf" required /></label>
                 <label>Telefone <input name="telefone" /></label>
                 <label>Email <input name="email" type="email" /></label>
+                <label>Senha <input name="senha" type="password" /></label>
+                <label>Endereço <select id="funcionarioEnderecoId" name="enderecoId" required></select></label>
                 <label>Pontos de Venda <select id="funcionarioPontoVendaId" name="pontosVenda" multiple required></select></label>
+                <label>Autorizado múltiplos pontos <select name="autorizadoMultiplosPontos"><option value="false">Não</option><option value="true">Sim</option></select></label>
                 <button type="submit">Criar Funcionário</button>
             </form>
             <div class="list-container">
