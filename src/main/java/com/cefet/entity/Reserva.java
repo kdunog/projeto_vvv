@@ -53,9 +53,6 @@ public class Reserva {
     @JsonIgnore
     private Ticket ticket;
 
-    @Column(nullable = false)
-    private boolean vendaOnline;
-
     @ManyToOne
     @JoinColumn(name = "id_funcionario_confirmacao")
     private Funcionario funcionarioConfirmacao;
@@ -63,9 +60,6 @@ public class Reserva {
     private LocalDateTime dataConfirmacao;
 
     private Boolean confirmada = false;
-
-    @Column(length = 20)
-    private String tipoVenda;
 
     @ManyToOne
     @JoinColumn(name = "id_gerente_virtual")

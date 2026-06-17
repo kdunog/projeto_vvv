@@ -35,7 +35,6 @@ class PagamentoServiceTest {
         Passageiro passageiro = new Passageiro();
         passageiro.setIdade(5);
         reserva.setPassageiro(passageiro);
-        reserva.setVendaOnline(false);
 
         Pagamento pagamento = new Pagamento();
         pagamento.setReserva(reserva);
@@ -59,7 +58,6 @@ class PagamentoServiceTest {
         Passageiro passageiro = new Passageiro();
         passageiro.setIdade(30);
         reserva.setPassageiro(passageiro);
-        reserva.setVendaOnline(false);
 
         Credito credito = new Credito();
         credito.setNumeroDeParcelas(5);
@@ -86,7 +84,6 @@ class PagamentoServiceTest {
         Passageiro passageiro = new Passageiro();
         passageiro.setIdade(25);
         reserva.setPassageiro(passageiro);
-        reserva.setVendaOnline(true);
 
         Pagamento pagamento = new Pagamento();
         pagamento.setReserva(reserva);

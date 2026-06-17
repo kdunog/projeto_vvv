@@ -26,8 +26,5 @@ public class Passageiro {
     @Column(unique = true, length = 100)
     private String email;
 
-    @Column(nullable = false)
-    private String senha;
-
     private Integer idade;
 }

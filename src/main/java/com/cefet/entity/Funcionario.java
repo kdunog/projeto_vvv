@@ -24,11 +24,6 @@ public class Funcionario {
     )
     private List<PontoVenda> pontosVenda;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_endereco_residencia", nullable = false)
-    private Endereco enderecoResidencia;
-
-    
     @Column(nullable = false, length = 100)
     private String nome;
 
@@ -41,11 +36,6 @@ public class Funcionario {
     @Column(unique = true, length = 100)
     private String email;
 
-    private String senha;
-
     @Column(length = 50)
     private String cargo;
-
-    @Column
-    private Boolean autorizadoMultiplosPontos;
 }
