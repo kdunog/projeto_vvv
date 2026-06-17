@@ -76,11 +76,26 @@ async function request(path, options = {}) {
     }
 }
 
+async function deleteEntity(path, id, reloadFn) {
+    const confirmed = confirm('Tem certeza que deseja excluir este item?');
+    if (!confirmed) return;
+
+    try {
+        await request(`${path}/${id}`, { method: 'DELETE' });
+        showMessage('Item excluído com sucesso.');
+        if (reloadFn) {
+            await reloadFn();
+        }
+    } catch (error) {
+        // A mensagem já foi exibida pelo request()
+    }
+}
+
 async function loadPassageiros() {
     const list = document.getElementById('passageiros-list');
     list.innerHTML = '<li>Carregando...</li>';
     const passageiros = await request('/passageiros');
-    list.innerHTML = passageiros.map(p => `<li>${p.id} - ${p.nome} (${p.cpf}) - ${p.email || 'sem email'}</li>`).join('');
+    list.innerHTML = passageiros.map(p => `<li>${p.id} - ${p.nome} (${p.cpf}) - ${p.email || 'sem email'} <button class="delete-btn" onclick="deleteEntity('/passageiros', ${p.id}, loadPassageiros)" title="Excluir passageiro">🗑️</button></li>`).join('');
 }
 
 async function createPassageiro(event) {
@@ -108,7 +123,7 @@ async function loadCidades() {
     const list = document.getElementById('cidades-list');
     list.innerHTML = '<li>Carregando...</li>';
     const cidades = await request('/cidades');
-    list.innerHTML = cidades.map(c => `<li>${c.id} - ${c.nome} [${c.indentificador}] - ${c.estado}</li>`).join('');
+    list.innerHTML = cidades.map(c => `<li>${c.id} - ${c.nome} [${c.indentificador}] - ${c.estado} <button class="delete-btn" onclick="deleteEntity('/cidades', ${c.id}, loadCidades)" title="Excluir cidade">🗑️</button></li>`).join('');
 }
 
 async function createCidade(event) {
@@ -150,7 +165,7 @@ async function loadModais() {
 
     list.innerHTML = modais.map(m => {
         const { capacidadeAtual, capacidadeMaxima, disponibilidade } = getModalDisponibilidade(m, reservas);
-        return `<li>${m.id} - ${m.tipo} (${capacidadeAtual}/${capacidadeMaxima}) - ${disponibilidade} - Transportadora: ${m.transportadora?.nome || 'N/A'}</li>`;
+        return `<li>${m.id} - ${m.tipo} (${capacidadeAtual}/${capacidadeMaxima}) - ${disponibilidade} - Transportadora: ${m.transportadora?.nome || 'N/A'} <button class="delete-btn" onclick="deleteEntity('/modais', ${m.id}, loadModais)" title="Excluir modal">🗑️</button></li>`;
     }).join('');
 }
 
@@ -158,7 +173,7 @@ async function loadTransportadoras() {
     const list = document.getElementById('transportadoras-list');
     list.innerHTML = '<li>Carregando...</li>';
     const transportadoras = await request('/transportadoras');
-    list.innerHTML = transportadoras.map(t => `<li>${t.id} - ${t.nome} (${t.cnpj})</li>`).join('');
+    list.innerHTML = transportadoras.map(t => `<li>${t.id} - ${t.nome} (${t.cnpj}) <button class="delete-btn" onclick="deleteEntity('/transportadoras', ${t.id}, loadTransportadoras)" title="Excluir transportadora">🗑️</button></li>`).join('');
 }
 
 async function loadTransportadoraOptions() {
@@ -279,7 +294,7 @@ async function loadReservas() {
     const list = document.getElementById('reservas-list');
     list.innerHTML = '<li>Carregando...</li>';
     const reservas = await request('/reservas');
-    list.innerHTML = reservas.map(r => `<li>${r.id} - Passageiro ${r.passageiro?.id || 'N/A'} > ${r.cidadeOrigem?.nome || 'N/A'} -> ${r.cidadeDestino?.nome || 'N/A'} - ${r.status || 'sem status'}</li>`).join('');
+    list.innerHTML = reservas.map(r => `<li>${r.id} - Passageiro ${r.passageiro?.id || 'N/A'} > ${r.cidadeOrigem?.nome || 'N/A'} -> ${r.cidadeDestino?.nome || 'N/A'} - ${r.status || 'sem status'} <button class="delete-btn" onclick="deleteEntity('/reservas', ${r.id}, async () => { await loadReservas(); await loadModais(); })" title="Excluir reserva">🗑️</button></li>`).join('');
 }
 
 async function createReserva(event) {
@@ -312,7 +327,7 @@ async function loadPagamentos() {
     const list = document.getElementById('pagamentos-list');
     list.innerHTML = '<li>Carregando...</li>';
     const pagamentos = await request('/pagamentos');
-    list.innerHTML = pagamentos.map(p => `<li>${p.id} - Reserva ${p.reserva?.id || 'N/A'} - Valor: R$ ${p.valor} - Status: ${p.status || 'sem status'}</li>`).join('');
+    list.innerHTML = pagamentos.map(p => `<li>${p.id} - Reserva ${p.reserva?.id || 'N/A'} - Valor: R$ ${p.valor} - Status: ${p.status || 'sem status'} <button class="delete-btn" onclick="deleteEntity('/pagamentos', ${p.id}, loadPagamentos)" title="Excluir pagamento">🗑️</button></li>`).join('');
 }
 
 function updatePagamentoFields() {
@@ -467,7 +482,7 @@ async function loadEnderecos() {
     const list = document.getElementById('enderecos-list');
     list.innerHTML = '<li>Carregando...</li>';
     const enderecos = await request('/enderecos');
-    list.innerHTML = enderecos.map(e => `<li>${e.id} - ${e.logradouro}, ${e.numero} - ${e.bairro || ''} - ${e.cep || ''} - ${e.cidade?.nome || 'N/A'}</li>`).join('');
+    list.innerHTML = enderecos.map(e => `<li>${e.id} - ${e.logradouro}, ${e.numero} - ${e.bairro || ''} - ${e.cep || ''} - ${e.cidade?.nome || 'N/A'} <button class="delete-btn" onclick="deleteEntity('/enderecos', ${e.id}, loadEnderecos)" title="Excluir endereço">🗑️</button></li>`).join('');
 }
 
 async function createEndereco(event) {
@@ -495,7 +510,7 @@ async function loadPontosVenda() {
     const list = document.getElementById('pontos-venda-list');
     list.innerHTML = '<li>Carregando...</li>';
     const pontos = await request('/pontos-venda');
-    list.innerHTML = pontos.map(p => `<li>${p.id} - ${p.cnpj || 'sem CNPJ'} - ${p.telefone || 'sem telefone'} - Endereço: ${p.endereco?.logradouro || 'N/A'}</li>`).join('');
+    list.innerHTML = pontos.map(p => `<li>${p.id} - ${p.cnpj || 'sem CNPJ'} - ${p.telefone || 'sem telefone'} - Endereço: ${p.endereco?.logradouro || 'N/A'} <button class="delete-btn" onclick="deleteEntity('/pontos-venda', ${p.id}, loadPontosVenda)" title="Excluir ponto de venda">🗑️</button></li>`).join('');
 }
 
 async function createPontoVenda(event) {
@@ -520,7 +535,7 @@ async function loadFuncionarios() {
     const list = document.getElementById('funcionarios-list');
     list.innerHTML = '<li>Carregando...</li>';
     const funcionarios = await request('/funcionarios');
-    list.innerHTML = funcionarios.map(f => `<li>${f.id} - ${f.nome} (${f.cpf}) - Cargo: ${f.cargo || 'N/A'} - Endereço: ${f.enderecoResidencia?.logradouro || 'N/A'}</li>`).join('');
+    list.innerHTML = funcionarios.map(f => `<li>${f.id} - ${f.nome} (${f.cpf}) - Cargo: ${f.cargo || 'N/A'} - Endereço: ${f.enderecoResidencia?.logradouro || 'N/A'} <button class="delete-btn" onclick="deleteEntity('/funcionarios', ${f.id}, loadFuncionarios)" title="Excluir funcionário">🗑️</button></li>`).join('');
 }
 
 async function createFuncionario(event) {
@@ -551,7 +566,7 @@ async function loadTickets() {
     const list = document.getElementById('tickets-list');
     list.innerHTML = '<li>Carregando...</li>';
     const tickets = await request('/tickets');
-    list.innerHTML = tickets.map(t => `<li>${t.id} - Reserva ${t.reserva?.id || 'N/A'} - Valor: R$ ${t.valor}</li>`).join('');
+    list.innerHTML = tickets.map(t => `<li>${t.id} - Reserva ${t.reserva?.id || 'N/A'} - Valor: R$ ${t.valor} <button class="delete-btn" onclick="deleteEntity('/tickets', ${t.id}, loadTickets)" title="Excluir ticket">🗑️</button></li>`).join('');
 }
 
 async function emitirTicket(event) {
