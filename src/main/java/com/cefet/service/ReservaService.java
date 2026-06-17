@@ -66,7 +66,7 @@ public class ReservaService {
         Modal modal = modalService.buscarPorId(reserva.getModal().getId())
                 .orElseThrow(() -> new RuntimeException("Modal não encontrado."));
 
-        if ("EM_MANUTENCAO".equals(modal.getStatus())) {
+        if (modal.isEmManutencao() || "EM_MANUTENCAO".equals(modal.getStatus())) {
             throw new RuntimeException("Modal em manutenção não pode receber reservas.");
         }
 

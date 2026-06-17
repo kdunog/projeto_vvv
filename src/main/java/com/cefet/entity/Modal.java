@@ -29,6 +29,9 @@ public class Modal {
     @Column(name = "ultima_manutencao")
     private LocalDate ultimaManutencao;
 
+    @Column(name = "em_manutencao", nullable = false)
+    private boolean emManutencao;
+
     @Column(length = 30)
     private String status;
 }

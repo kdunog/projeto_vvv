@@ -40,6 +40,36 @@ public class ReservaController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody Reserva reserva) {
+        try {
+            service.buscarPorId(id);
+            reserva.setId(id);
+            return ResponseEntity.ok(service.salvar(reserva));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> atualizarParcial(@PathVariable Long id, @RequestBody Reserva reservaAtualizada) {
+        try {
+            Reserva reserva = service.buscarPorId(id);
+            if (reservaAtualizada.getPassageiro() != null) reserva.setPassageiro(reservaAtualizada.getPassageiro());
+            if (reservaAtualizada.getAcompanhante() != null) reserva.setAcompanhante(reservaAtualizada.getAcompanhante());
+            if (reservaAtualizada.getCidadeOrigem() != null) reserva.setCidadeOrigem(reservaAtualizada.getCidadeOrigem());
+            if (reservaAtualizada.getCidadeDestino() != null) reserva.setCidadeDestino(reservaAtualizada.getCidadeDestino());
+            if (reservaAtualizada.getModal() != null) reserva.setModal(reservaAtualizada.getModal());
+            if (reservaAtualizada.getDataReserva() != null) reserva.setDataReserva(reservaAtualizada.getDataReserva());
+            if (reservaAtualizada.getStatus() != null) reserva.setStatus(reservaAtualizada.getStatus());
+            reserva.setVendaOnline(reservaAtualizada.isVendaOnline());
+            if (reservaAtualizada.getTipoVenda() != null) reserva.setTipoVenda(reservaAtualizada.getTipoVenda());
+            return ResponseEntity.ok(service.salvar(reserva));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
     
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {

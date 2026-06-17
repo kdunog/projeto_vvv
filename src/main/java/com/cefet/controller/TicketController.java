@@ -8,8 +8,10 @@ import com.cefet.service.TicketService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,6 +55,34 @@ public class TicketController {
     public ResponseEntity<?> salvar(@RequestBody Ticket ticket) {
         try {
             return ResponseEntity.ok(service.salvar(ticket));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody Ticket ticket) {
+        try {
+            if (!service.buscarPorId(id).isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            ticket.setId(id);
+            return ResponseEntity.ok(service.salvar(ticket));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> atualizarParcial(@PathVariable Long id, @RequestBody Ticket ticketAtualizado) {
+        try {
+            return service.buscarPorId(id)
+                    .map(ticket -> {
+                        if (ticketAtualizado.getReserva() != null) ticket.setReserva(ticketAtualizado.getReserva());
+                        if (ticketAtualizado.getValor() != null) ticket.setValor(ticketAtualizado.getValor());
+                        return ResponseEntity.ok(service.salvar(ticket));
+                    })
+                    .orElse(ResponseEntity.notFound().build());
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

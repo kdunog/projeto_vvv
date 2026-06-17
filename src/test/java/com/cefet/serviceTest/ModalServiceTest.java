@@ -25,11 +25,11 @@ class ModalServiceTest {
     private ModalRepository modalRepository;
 
     @Test
-    @DisplayName("Deve definir status como EM_MANUTENCAO se a data da última manutenção for futura (RN006)")
+    @DisplayName("Deve definir status como EM_MANUTENCAO quando o modal estiver marcado como em manutenção")
     void deveMudarStatusParaEmManutencao() {
         Modal modal = new Modal();
         modal.setTipo("Ônibus");
-        modal.setUltimaManutencao(LocalDate.now().plusDays(1));
+        modal.setEmManutencao(true);
 
         when(modalRepository.save(any(Modal.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -40,11 +40,11 @@ class ModalServiceTest {
     }
 
     @Test
-    @DisplayName("Deve manter status como DISPONIVEL se a data da manutenção for hoje ou passada")
+    @DisplayName("Deve manter status como DISPONIVEL quando o modal não estiver em manutenção")
     void deveManterStatusDisponivel() {
         Modal modal = new Modal();
         modal.setTipo("Avião");
-        modal.setUltimaManutencao(LocalDate.now());
+        modal.setEmManutencao(false);
 
         when(modalRepository.save(any(Modal.class))).thenAnswer(inv -> inv.getArgument(0));
 

@@ -95,7 +95,58 @@ async function loadPassageiros() {
     const list = document.getElementById('passageiros-list');
     list.innerHTML = '<li>Carregando...</li>';
     const passageiros = await request('/passageiros');
-    list.innerHTML = passageiros.map(p => `<li>${p.id} - ${p.nome} (${p.cpf}) - ${p.email || 'sem email'} <button class="delete-btn" onclick="deleteEntity('/passageiros', ${p.id}, loadPassageiros)" title="Excluir passageiro">🗑️</button></li>`).join('');
+    list.innerHTML = passageiros.map(p => `
+        <li id="passageiro-row-${p.id}">
+            <span>${p.id} - ${p.nome} (${p.cpf}) - ${p.email || 'sem email'}</span>
+            <span class="item-actions">
+                <button class="edit-btn" onclick="startEditPassageiro(${p.id})" title="Editar passageiro">✏️</button>
+                <button class="delete-btn" onclick="deleteEntity('/passageiros', ${p.id}, loadPassageiros)" title="Excluir passageiro">🗑️</button>
+            </span>
+        </li>
+    `).join('');
+}
+
+async function startEditPassageiro(id) {
+    const passageiro = await request(`/passageiros/${id}`);
+    const row = document.getElementById(`passageiro-row-${id}`);
+    if (!row) return;
+
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="savePassageiro(event, ${id})">
+            <input name="nome" value="${passageiro.nome || ''}" required />
+            <input name="cpf" value="${passageiro.cpf || ''}" required />
+            <input name="telefone" value="${passageiro.telefone || ''}" />
+            <input name="email" type="email" value="${passageiro.email || ''}" />
+            <input name="senha" type="password" value="${passageiro.senha || ''}" />
+            <input name="idade" type="number" min="0" value="${passageiro.idade || ''}" />
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadPassageiros()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function savePassageiro(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        nome: form.nome.value,
+        cpf: form.cpf.value,
+        telefone: form.telefone.value,
+        email: form.email.value,
+        senha: form.senha.value,
+        idade: form.idade.value ? parseInt(form.idade.value, 10) : null
+    };
+
+    await request(`/passageiros/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    showMessage('Passageiro atualizado com sucesso.');
+    await loadPassageiros();
 }
 
 async function createPassageiro(event) {
@@ -123,7 +174,49 @@ async function loadCidades() {
     const list = document.getElementById('cidades-list');
     list.innerHTML = '<li>Carregando...</li>';
     const cidades = await request('/cidades');
-    list.innerHTML = cidades.map(c => `<li>${c.id} - ${c.nome} [${c.indentificador}] - ${c.estado} <button class="delete-btn" onclick="deleteEntity('/cidades', ${c.id}, loadCidades)" title="Excluir cidade">🗑️</button></li>`).join('');
+    list.innerHTML = cidades.map(c => `
+        <li id="cidade-row-${c.id}">
+            <span>${c.id} - ${c.nome} [${c.indentificador}] - ${c.estado}</span>
+            <span class="item-actions">
+                <button class="edit-btn" onclick="startEditCidade(${c.id})" title="Editar cidade">✏️</button>
+                <button class="delete-btn" onclick="deleteEntity('/cidades', ${c.id}, loadCidades)" title="Excluir cidade">🗑️</button>
+            </span>
+        </li>
+    `).join('');
+}
+
+async function startEditCidade(id) {
+    const cidade = await request(`/cidades/${id}`);
+    const row = document.getElementById(`cidade-row-${id}`);
+    if (!row) return;
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="saveCidade(event, ${id})">
+            <input name="nome" value="${cidade.nome || ''}" required />
+            <input name="indentificador" value="${cidade.indentificador || ''}" required />
+            <input name="estado" value="${cidade.estado || ''}" required />
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadCidades()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function saveCidade(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        nome: form.nome.value,
+        indentificador: form.indentificador.value,
+        estado: form.estado.value
+    };
+    await request(`/cidades/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    showMessage('Cidade atualizada com sucesso.');
+    await loadCidades();
 }
 
 async function createCidade(event) {
@@ -147,11 +240,13 @@ async function createCidade(event) {
 function getModalDisponibilidade(modal, reservas) {
     const capacidadeMaxima = Number(modal.capacidade) || 0;
     const capacidadeAtual = reservas.filter(reserva => Number(reserva.modal?.id) === Number(modal.id)).length;
-    const disponibilidade = capacidadeAtual >= capacidadeMaxima ? 'Indisponível' : 'Disponível';
+    const emManutencao = Boolean(modal.emManutencao || modal.status === 'EM_MANUTENCAO');
+    const disponibilidade = emManutencao || capacidadeAtual >= capacidadeMaxima ? 'Indisponível' : 'Disponível';
     return {
         capacidadeAtual,
         capacidadeMaxima,
-        disponibilidade
+        disponibilidade,
+        emManutencao
     };
 }
 
@@ -164,16 +259,116 @@ async function loadModais() {
     ]);
 
     list.innerHTML = modais.map(m => {
-        const { capacidadeAtual, capacidadeMaxima, disponibilidade } = getModalDisponibilidade(m, reservas);
-        return `<li>${m.id} - ${m.tipo} (${capacidadeAtual}/${capacidadeMaxima}) - ${disponibilidade} - Transportadora: ${m.transportadora?.nome || 'N/A'} <button class="delete-btn" onclick="deleteEntity('/modais', ${m.id}, loadModais)" title="Excluir modal">🗑️</button></li>`;
+        const { capacidadeAtual, capacidadeMaxima, disponibilidade, emManutencao } = getModalDisponibilidade(m, reservas);
+        const statusTexto = emManutencao ? 'Em manutenção' : 'Disponível';
+        return `
+            <li id="modal-row-${m.id}">
+                <span>${m.id} - ${m.tipo} (${capacidadeAtual}/${capacidadeMaxima}) - ${statusTexto} - ${disponibilidade} - Transportadora: ${m.transportadora?.nome || 'N/A'}</span>
+                <span class="item-actions">
+                    <button class="edit-btn" onclick="startEditModal(${m.id})" title="Editar modal">✏️</button>
+                    <button class="delete-btn" onclick="deleteEntity('/modais', ${m.id}, loadModais)" title="Excluir modal">🗑️</button>
+                </span>
+            </li>
+        `;
     }).join('');
+}
+
+async function startEditModal(id) {
+    const [modal, transportadoras] = await Promise.all([
+        request(`/modais/${id}`),
+        request('/transportadoras')
+    ]);
+    const row = document.getElementById(`modal-row-${id}`);
+    if (!row) return;
+
+    const options = transportadoras.map(t => `<option value="${t.id}" ${Number(modal.transportadora?.id) === Number(t.id) ? 'selected' : ''}>${t.id} - ${t.nome}</option>`).join('');
+
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="saveModal(event, ${id})">
+            <input name="tipo" value="${modal.tipo || ''}" required />
+            <input name="capacidade" type="number" min="1" value="${modal.capacidade || ''}" required />
+            <input name="ultimaManutencao" type="date" value="${modal.ultimaManutencao || ''}" />
+            <label class="checkbox-label inline-checkbox-label">
+                <input name="emManutencao" type="checkbox" ${modal.emManutencao ? 'checked' : ''} />
+                <span>Em manutenção</span>
+            </label>
+            <select name="transportadoraId">${options}</select>
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadModais()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function saveModal(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        tipo: form.tipo.value,
+        capacidade: parseInt(form.capacidade.value, 10),
+        ultimaManutencao: form.ultimaManutencao.value || null,
+        emManutencao: form.emManutencao.checked,
+        transportadora: { id: parseInt(form.transportadoraId.value, 10) }
+    };
+    if (!payload.ultimaManutencao) delete payload.ultimaManutencao;
+
+    await request(`/modais/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    showMessage('Modal atualizado com sucesso.');
+    await loadModais();
 }
 
 async function loadTransportadoras() {
     const list = document.getElementById('transportadoras-list');
     list.innerHTML = '<li>Carregando...</li>';
     const transportadoras = await request('/transportadoras');
-    list.innerHTML = transportadoras.map(t => `<li>${t.id} - ${t.nome} (${t.cnpj}) <button class="delete-btn" onclick="deleteEntity('/transportadoras', ${t.id}, loadTransportadoras)" title="Excluir transportadora">🗑️</button></li>`).join('');
+    list.innerHTML = transportadoras.map(t => `
+        <li id="transportadora-row-${t.id}">
+            <span>${t.id} - ${t.nome} (${t.cnpj})</span>
+            <span class="item-actions">
+                <button class="edit-btn" onclick="startEditTransportadora(${t.id})" title="Editar transportadora">✏️</button>
+                <button class="delete-btn" onclick="deleteEntity('/transportadoras', ${t.id}, loadTransportadoras)" title="Excluir transportadora">🗑️</button>
+            </span>
+        </li>
+    `).join('');
+}
+
+async function startEditTransportadora(id) {
+    const transportadora = await request(`/transportadoras/${id}`);
+    const row = document.getElementById(`transportadora-row-${id}`);
+    if (!row) return;
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="saveTransportadora(event, ${id})">
+            <input name="nome" value="${transportadora.nome || ''}" required />
+            <input name="cnpj" value="${transportadora.cnpj || ''}" required />
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadTransportadoras()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function saveTransportadora(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        nome: form.nome.value,
+        cnpj: form.cnpj.value
+    };
+    await request(`/transportadoras/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    showMessage('Transportadora atualizada com sucesso.');
+    await loadTransportadoras();
+    await loadTransportadoraOptions();
 }
 
 async function loadTransportadoraOptions() {
@@ -211,6 +406,7 @@ async function createModal(event) {
         tipo: form.tipo.value,
         capacidade: parseInt(form.capacidade.value, 10),
         ultimaManutencao: form.ultimaManutencao.value || null,
+        emManutencao: form.emManutencao.checked,
         transportadora: { id: parseInt(form.transportadoraId.value, 10) }
     };
     if (!payload.ultimaManutencao) delete payload.ultimaManutencao;
@@ -294,7 +490,67 @@ async function loadReservas() {
     const list = document.getElementById('reservas-list');
     list.innerHTML = '<li>Carregando...</li>';
     const reservas = await request('/reservas');
-    list.innerHTML = reservas.map(r => `<li>${r.id} - Passageiro ${r.passageiro?.id || 'N/A'} > ${r.cidadeOrigem?.nome || 'N/A'} -> ${r.cidadeDestino?.nome || 'N/A'} - ${r.status || 'sem status'} <button class="delete-btn" onclick="deleteEntity('/reservas', ${r.id}, async () => { await loadReservas(); await loadModais(); })" title="Excluir reserva">🗑️</button></li>`).join('');
+    list.innerHTML = reservas.map(r => `
+        <li id="reserva-row-${r.id}">
+            <span>${r.id} - Passageiro ${r.passageiro?.id || 'N/A'} > ${r.cidadeOrigem?.nome || 'N/A'} -> ${r.cidadeDestino?.nome || 'N/A'} - ${r.status || 'sem status'}</span>
+            <span class="item-actions">
+                <button class="edit-btn" onclick="startEditReserva(${r.id})" title="Editar reserva">✏️</button>
+                <button class="delete-btn" onclick="deleteEntity('/reservas', ${r.id}, async () => { await loadReservas(); await loadModais(); })" title="Excluir reserva">🗑️</button>
+            </span>
+        </li>
+    `).join('');
+}
+
+async function startEditReserva(id) {
+    const reserva = await request(`/reservas/${id}`);
+    const row = document.getElementById(`reserva-row-${id}`);
+    if (!row) return;
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="saveReserva(event, ${id})">
+            <input name="passageiroId" type="number" value="${reserva.passageiro?.id || ''}" required />
+            <input name="acompanhanteId" type="number" value="${reserva.acompanhante?.id || ''}" />
+            <input name="origemId" type="number" value="${reserva.cidadeOrigem?.id || ''}" required />
+            <input name="destinoId" type="number" value="${reserva.cidadeDestino?.id || ''}" required />
+            <input name="modalId" type="number" value="${reserva.modal?.id || ''}" required />
+            <input name="dataReserva" type="date" value="${reserva.dataReserva || ''}" required />
+            <select name="vendaOnline">
+                <option value="true" ${reserva.vendaOnline ? 'selected' : ''}>Sim</option>
+                <option value="false" ${!reserva.vendaOnline ? 'selected' : ''}>Não</option>
+            </select>
+            <input name="tipoVenda" value="${reserva.tipoVenda || ''}" />
+            <input name="status" value="${reserva.status || ''}" />
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadReservas()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function saveReserva(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        passageiro: { id: parseInt(form.passageiroId.value, 10) },
+        acompanhante: form.acompanhanteId.value ? { id: parseInt(form.acompanhanteId.value, 10) } : null,
+        cidadeOrigem: { id: parseInt(form.origemId.value, 10) },
+        cidadeDestino: { id: parseInt(form.destinoId.value, 10) },
+        modal: { id: parseInt(form.modalId.value, 10) },
+        dataReserva: form.dataReserva.value,
+        vendaOnline: form.vendaOnline.value === 'true',
+        tipoVenda: form.tipoVenda.value,
+        status: form.status.value
+    };
+    await request(`/reservas/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    showMessage('Reserva atualizada com sucesso.');
+    await Promise.all([
+        loadReservas(),
+        loadModais()
+    ]);
 }
 
 async function createReserva(event) {
@@ -327,7 +583,53 @@ async function loadPagamentos() {
     const list = document.getElementById('pagamentos-list');
     list.innerHTML = '<li>Carregando...</li>';
     const pagamentos = await request('/pagamentos');
-    list.innerHTML = pagamentos.map(p => `<li>${p.id} - Reserva ${p.reserva?.id || 'N/A'} - Valor: R$ ${p.valor} - Status: ${p.status || 'sem status'} <button class="delete-btn" onclick="deleteEntity('/pagamentos', ${p.id}, loadPagamentos)" title="Excluir pagamento">🗑️</button></li>`).join('');
+    list.innerHTML = pagamentos.map(p => `
+        <li id="pagamento-row-${p.id}">
+            <span>${p.id} - Reserva ${p.reserva?.id || 'N/A'} - Valor final: R$ ${p.valorFinal ?? p.valor} - Status: ${p.status || 'sem status'}</span>
+            <span class="item-actions">
+                <button class="edit-btn" onclick="startEditPagamento(${p.id})" title="Editar pagamento">✏️</button>
+                <button class="delete-btn" onclick="deleteEntity('/pagamentos', ${p.id}, loadPagamentos)" title="Excluir pagamento">🗑️</button>
+            </span>
+        </li>
+    `).join('');
+}
+
+async function startEditPagamento(id) {
+    const pagamento = await request(`/pagamentos/${id}`);
+    const row = document.getElementById(`pagamento-row-${id}`);
+    if (!row) return;
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="savePagamento(event, ${id})">
+            <input name="reservaId" type="number" value="${pagamento.reserva?.id || ''}" required />
+            <input name="valor" type="number" step="0.01" value="${pagamento.valor || ''}" required />
+            <input name="metodoPagamento" value="${pagamento.metodoPagamento || ''}" />
+            <input name="numeroParcelas" type="number" value="${pagamento.numeroDeParcelas || ''}" />
+            <input name="status" value="${pagamento.status || ''}" />
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadPagamentos()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function savePagamento(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        reserva: { id: parseInt(form.reservaId.value, 10) },
+        valor: parseFloat(form.valor.value),
+        metodoPagamento: form.metodoPagamento.value,
+        numeroDeParcelas: form.numeroParcelas.value ? parseInt(form.numeroParcelas.value, 10) : null,
+        status: form.status.value
+    };
+    await request(`/pagamentos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    showMessage('Pagamento atualizado com sucesso.');
+    await loadPagamentos();
 }
 
 function updatePagamentoFields() {
@@ -482,7 +784,55 @@ async function loadEnderecos() {
     const list = document.getElementById('enderecos-list');
     list.innerHTML = '<li>Carregando...</li>';
     const enderecos = await request('/enderecos');
-    list.innerHTML = enderecos.map(e => `<li>${e.id} - ${e.logradouro}, ${e.numero} - ${e.bairro || ''} - ${e.cep || ''} - ${e.cidade?.nome || 'N/A'} <button class="delete-btn" onclick="deleteEntity('/enderecos', ${e.id}, loadEnderecos)" title="Excluir endereço">🗑️</button></li>`).join('');
+    list.innerHTML = enderecos.map(e => `
+        <li id="endereco-row-${e.id}">
+            <span>${e.id} - ${e.logradouro}, ${e.numero} - ${e.bairro || ''} - ${e.cep || ''} - ${e.cidade?.nome || 'N/A'}</span>
+            <span class="item-actions">
+                <button class="edit-btn" onclick="startEditEndereco(${e.id})" title="Editar endereço">✏️</button>
+                <button class="delete-btn" onclick="deleteEntity('/enderecos', ${e.id}, loadEnderecos)" title="Excluir endereço">🗑️</button>
+            </span>
+        </li>
+    `).join('');
+}
+
+async function startEditEndereco(id) {
+    const endereco = await request(`/enderecos/${id}`);
+    const row = document.getElementById(`endereco-row-${id}`);
+    if (!row) return;
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="saveEndereco(event, ${id})">
+            <input name="cidadeId" type="number" value="${endereco.cidade?.id || ''}" required />
+            <input name="logradouro" value="${endereco.logradouro || ''}" required />
+            <input name="numero" type="number" value="${endereco.numero || ''}" required />
+            <input name="complemento" value="${endereco.complemento || ''}" />
+            <input name="bairro" value="${endereco.bairro || ''}" />
+            <input name="cep" value="${endereco.cep || ''}" />
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadEnderecos()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function saveEndereco(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        cidade: { id: parseInt(form.cidadeId.value, 10) },
+        logradouro: form.logradouro.value,
+        numero: parseInt(form.numero.value, 10),
+        complemento: form.complemento.value,
+        bairro: form.bairro.value,
+        cep: form.cep.value
+    };
+    await request(`/enderecos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    showMessage('Endereço atualizado com sucesso.');
+    await loadEnderecos();
 }
 
 async function createEndereco(event) {
@@ -510,7 +860,49 @@ async function loadPontosVenda() {
     const list = document.getElementById('pontos-venda-list');
     list.innerHTML = '<li>Carregando...</li>';
     const pontos = await request('/pontos-venda');
-    list.innerHTML = pontos.map(p => `<li>${p.id} - ${p.cnpj || 'sem CNPJ'} - ${p.telefone || 'sem telefone'} - Endereço: ${p.endereco?.logradouro || 'N/A'} <button class="delete-btn" onclick="deleteEntity('/pontos-venda', ${p.id}, loadPontosVenda)" title="Excluir ponto de venda">🗑️</button></li>`).join('');
+    list.innerHTML = pontos.map(p => `
+        <li id="ponto-row-${p.id}">
+            <span>${p.id} - ${p.cnpj || 'sem CNPJ'} - ${p.telefone || 'sem telefone'} - Endereço: ${p.endereco?.logradouro || 'N/A'}</span>
+            <span class="item-actions">
+                <button class="edit-btn" onclick="startEditPontoVenda(${p.id})" title="Editar ponto de venda">✏️</button>
+                <button class="delete-btn" onclick="deleteEntity('/pontos-venda', ${p.id}, loadPontosVenda)" title="Excluir ponto de venda">🗑️</button>
+            </span>
+        </li>
+    `).join('');
+}
+
+async function startEditPontoVenda(id) {
+    const ponto = await request(`/pontos-venda/${id}`);
+    const row = document.getElementById(`ponto-row-${id}`);
+    if (!row) return;
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="savePontoVenda(event, ${id})">
+            <input name="enderecoId" type="number" value="${ponto.endereco?.id || ''}" required />
+            <input name="telefone" value="${ponto.telefone || ''}" />
+            <input name="cnpj" value="${ponto.cnpj || ''}" />
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadPontosVenda()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function savePontoVenda(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        endereco: { id: parseInt(form.enderecoId.value, 10) },
+        telefone: form.telefone.value,
+        cnpj: form.cnpj.value
+    };
+    await request(`/pontos-venda/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    showMessage('Ponto de venda atualizado com sucesso.');
+    await loadPontosVenda();
 }
 
 async function createPontoVenda(event) {
@@ -535,7 +927,62 @@ async function loadFuncionarios() {
     const list = document.getElementById('funcionarios-list');
     list.innerHTML = '<li>Carregando...</li>';
     const funcionarios = await request('/funcionarios');
-    list.innerHTML = funcionarios.map(f => `<li>${f.id} - ${f.nome} (${f.cpf}) - Cargo: ${f.cargo || 'N/A'} - Endereço: ${f.enderecoResidencia?.logradouro || 'N/A'} <button class="delete-btn" onclick="deleteEntity('/funcionarios', ${f.id}, loadFuncionarios)" title="Excluir funcionário">🗑️</button></li>`).join('');
+    list.innerHTML = funcionarios.map(f => `
+        <li id="funcionario-row-${f.id}">
+            <span>${f.id} - ${f.nome} (${f.cpf}) - Cargo: ${f.cargo || 'N/A'} - Endereço: ${f.enderecoResidencia?.logradouro || 'N/A'}</span>
+            <span class="item-actions">
+                <button class="edit-btn" onclick="startEditFuncionario(${f.id})" title="Editar funcionário">✏️</button>
+                <button class="delete-btn" onclick="deleteEntity('/funcionarios', ${f.id}, loadFuncionarios)" title="Excluir funcionário">🗑️</button>
+            </span>
+        </li>
+    `).join('');
+}
+
+async function startEditFuncionario(id) {
+    const funcionario = await request(`/funcionarios/${id}`);
+    const row = document.getElementById(`funcionario-row-${id}`);
+    if (!row) return;
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="saveFuncionario(event, ${id})">
+            <input name="nome" value="${funcionario.nome || ''}" required />
+            <input name="cpf" value="${funcionario.cpf || ''}" required />
+            <input name="telefone" value="${funcionario.telefone || ''}" />
+            <input name="email" type="email" value="${funcionario.email || ''}" />
+            <input name="senha" type="password" value="${funcionario.senha || ''}" />
+            <input name="enderecoId" type="number" value="${funcionario.enderecoResidencia?.id || ''}" required />
+            <input name="cargo" value="${funcionario.cargo || ''}" />
+            <select name="autorizadoMultiplosPontos">
+                <option value="true" ${funcionario.autorizadoMultiplosPontos ? 'selected' : ''}>Sim</option>
+                <option value="false" ${!funcionario.autorizadoMultiplosPontos ? 'selected' : ''}>Não</option>
+            </select>
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadFuncionarios()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function saveFuncionario(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        nome: form.nome.value,
+        cpf: form.cpf.value,
+        telefone: form.telefone.value,
+        email: form.email.value,
+        senha: form.senha.value,
+        enderecoResidencia: { id: parseInt(form.enderecoId.value, 10) },
+        cargo: form.cargo.value,
+        autorizadoMultiplosPontos: form.autorizadoMultiplosPontos.value === 'true'
+    };
+    await request(`/funcionarios/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    showMessage('Funcionário atualizado com sucesso.');
+    await loadFuncionarios();
 }
 
 async function createFuncionario(event) {
@@ -566,7 +1013,47 @@ async function loadTickets() {
     const list = document.getElementById('tickets-list');
     list.innerHTML = '<li>Carregando...</li>';
     const tickets = await request('/tickets');
-    list.innerHTML = tickets.map(t => `<li>${t.id} - Reserva ${t.reserva?.id || 'N/A'} - Valor: R$ ${t.valor} <button class="delete-btn" onclick="deleteEntity('/tickets', ${t.id}, loadTickets)" title="Excluir ticket">🗑️</button></li>`).join('');
+    list.innerHTML = tickets.map(t => `
+        <li id="ticket-row-${t.id}">
+            <span>${t.id} - Reserva ${t.reserva?.id || 'N/A'} - Valor: R$ ${t.valor}</span>
+            <span class="item-actions">
+                <button class="edit-btn" onclick="startEditTicket(${t.id})" title="Editar ticket">✏️</button>
+                <button class="delete-btn" onclick="deleteEntity('/tickets', ${t.id}, loadTickets)" title="Excluir ticket">🗑️</button>
+            </span>
+        </li>
+    `).join('');
+}
+
+async function startEditTicket(id) {
+    const ticket = await request(`/tickets/${id}`);
+    const row = document.getElementById(`ticket-row-${id}`);
+    if (!row) return;
+    row.innerHTML = `
+        <form class="inline-edit-form" onsubmit="saveTicket(event, ${id})">
+            <input name="reservaId" type="number" value="${ticket.reserva?.id || ''}" required />
+            <input name="valor" type="number" step="0.01" value="${ticket.valor || ''}" required />
+            <div class="inline-edit-actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="loadTickets()">Cancelar</button>
+            </div>
+        </form>
+    `;
+}
+
+async function saveTicket(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+        reserva: { id: parseInt(form.reservaId.value, 10) },
+        valor: parseFloat(form.valor.value)
+    };
+    await request(`/tickets/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    showMessage('Ticket atualizado com sucesso.');
+    await loadTickets();
 }
 
 async function emitirTicket(event) {

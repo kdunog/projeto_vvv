@@ -1,19 +1,19 @@
 package com.cefet.service;
 
-import com.cefet.entity.Pagamento;
-import com.cefet.entity.Reserva;
-import com.cefet.repository.PagamentoRepository;
-import com.cefet.repository.ReservaRepository;
-import com.cefet.service.ReservaService;
-
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.cefet.entity.Pagamento;
+import com.cefet.entity.Reserva;
+import com.cefet.repository.PagamentoRepository;
+import com.cefet.repository.ReservaRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +50,7 @@ public class PagamentoService {
         // RN004
         Integer idade = reserva.getPassageiro().getIdade();
 
-        if (idade != null && idade > 2 && idade < 10) {
+        if (idade != null && idade >= 2 && idade <= 10) {
             pagamento.setDesconto(pagamento.getValor().multiply(BigDecimal.valueOf(0.40)));
         } else {
             pagamento.setDesconto(BigDecimal.ZERO);

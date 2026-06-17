@@ -2,7 +2,6 @@ package com.cefet.service;
 
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,15 +29,7 @@ public class ModalService {
 
     @Transactional
     public Modal salvar(Modal modal) {
-
-        if (modal.getUltimaManutencao() != null &&
-        modal.getUltimaManutencao().isAfter(LocalDate.now())) {
-        modal.setStatus("EM_MANUTENCAO");
-        } else {
-        modal.setStatus("DISPONIVEL");
-        }   
-
-
+        modal.setStatus(modal.isEmManutencao() ? "EM_MANUTENCAO" : "DISPONIVEL");
         return repo.save(modal);
     }
 

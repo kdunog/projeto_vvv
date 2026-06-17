@@ -76,7 +76,11 @@
             <form id="modal-form" onsubmit="createModal(event)">
                 <label>Tipo <input name="tipo" required /></label>
                 <label>Capacidade <input name="capacidade" type="number" min="1" required /></label>
-                <label>Última manutenção <input name="ultimaManutencao" type="date" /></label>
+                <label>Data da última manutenção <input name="ultimaManutencao" type="date" /></label>
+                <label class="checkbox-label">
+                    <input name="emManutencao" type="checkbox" />
+                    <span>Em manutenção</span>
+                </label>
                 <label>Transportadora <select id="transportadoraId" name="transportadoraId" required></select></label>
                 <button type="submit">Criar Modal</button>
             </form>
