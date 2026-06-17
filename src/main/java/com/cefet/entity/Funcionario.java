@@ -16,13 +16,14 @@ public class Funcionario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "funcionario_ponto_venda",
-        joinColumns = @JoinColumn(name = "funcionario_id"),
-        inverseJoinColumns = @JoinColumn(name = "ponto_venda_id")
-    )
-    private List<PontoVenda> pontosVenda;
+
+@ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.MERGE, CascadeType.PERSIST })
+@JoinTable(
+    name = "funcionario_ponto_venda",
+    joinColumns = @JoinColumn(name = "funcionario_id"),
+    inverseJoinColumns = @JoinColumn(name = "ponto_venda_id")
+)
+private List<PontoVenda> pontosVenda;
 
     @Column(nullable = false, length = 100)
     private String nome;

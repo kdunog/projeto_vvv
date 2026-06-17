@@ -116,7 +116,6 @@ async function startEditPassageiro(id) {
             <input name="cpf" value="${passageiro.cpf || ''}" required />
             <input name="telefone" value="${passageiro.telefone || ''}" />
             <input name="email" type="email" value="${passageiro.email || ''}" />
-            <input name="senha" type="password" value="${passageiro.senha || ''}" />
             <input name="idade" type="number" min="0" value="${passageiro.idade || ''}" />
             <div class="inline-edit-actions">
                 <button type="submit">Salvar</button>
@@ -134,7 +133,6 @@ async function savePassageiro(event, id) {
         cpf: form.cpf.value,
         telefone: form.telefone.value,
         email: form.email.value,
-        senha: form.senha.value,
         idade: form.idade.value ? parseInt(form.idade.value, 10) : null
     };
 
@@ -156,7 +154,6 @@ async function createPassageiro(event) {
         cpf: form.cpf.value,
         telefone: form.telefone.value,
         email: form.email.value,
-        senha: form.senha.value,
         idade: parseInt(form.idade.value, 10)
     };
     await request('/passageiros', {
